@@ -1,0 +1,687 @@
+﻿<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng Đèn pin Faraday - Vật lý Lớp 7</title>
+    <!-- Favicon Icon Đèn Pin -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><path fill='%2306b6d4' d='M338.2 16.5C333.6 6.3 323.4 0 312.2 0H199.8c-11.2 0-21.4 6.3-26 16.5L148.5 72H64c-17.7 0-32 14.3-32 32v16c0 17.7 14.3 32 32 32h16.2l34.4 309.2c3 27 25.8 47.8 53 47.8h176.8c27.2 0 50-20.8 53-47.8L431.8 152H448c17.7 0 32-14.3 32-32V104c0-17.7-14.3-32-32-32h-84.5l-25.3-55.5zM256 224a32 32 0 1 1 0 64 32 32 0 1 1 0-64z'/></svg>">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0b0f19',
+                        panelBg: '#111827',
+                        accentBlue: '#3b82f6',
+                        accentCyan: '#06b6d4',
+                        accentYellow: '#eab308'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Inter & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0b0f19; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+        
+        .part-item {
+            cursor: grab;
+            transition: all 0.2s ease;
+        }
+        .part-item:active { cursor: grabbing; }
+        .part-item.installed {
+            opacity: 0.3;
+            cursor: not-allowed;
+            pointer-events: none;
+            filter: grayscale(1);
+        }
+        .drop-zone { transition: all 0.2s ease; }
+        .drop-zone.drag-over {
+            border-color: #06b6d4;
+            background-color: rgba(6, 182, 212, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col justify-between selection:bg-cyan-500 selection:text-white">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-panelBg/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                <i class="fa-solid fa-bolt text-white text-lg animate-pulse"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Mô phỏng Đèn pin Faraday (Lớp 7)</h1>
+                <p class="text-xs text-slate-400">Bài học: Sự chuyển hóa năng lượng & Tác dụng của dòng điện</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button id="btnGuide" class="px-4 py-2 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-2">
+                <i class="fa-solid fa-graduation-cap text-cyan-400"></i> Bài học Lớp 7
+            </button>
+            <button id="btnSound" class="px-3 py-2 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-2" title="Bật/Tắt âm thanh">
+                <i id="soundIcon" class="fa-solid fa-volume-high text-cyan-400"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        
+        <!-- Cột 1 & 2: Khu vực Lắp ráp & Mô phỏng -->
+        <div class="lg:col-span-2 space-y-6">
+            
+            <!-- KHAY LINH KIỆN -->
+            <div class="bg-panelBg border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                    <h3 class="font-bold text-sm text-cyan-400 flex items-center gap-2">
+                        <i class="fa-solid fa-puzzle-piece"></i> 1. Kéo thả 5 bộ phận vào thân đèn pin
+                    </h3>
+                    <span id="assembleProgress" class="text-xs font-mono font-semibold text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/50">Tiến độ: 0/5</span>
+                </div>
+
+                <div id="partsBin" class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    <!-- 1. Đệm -->
+                    <div id="part-buffer" draggable="true" ondragstart="drag(event)" class="part-item bg-slate-900 border border-slate-700 hover:border-cyan-500/50 rounded-xl p-3 flex flex-col items-center justify-between text-center group">
+                        <div class="w-12 h-12 flex items-center justify-center my-1">
+                            <svg class="w-10 h-10 text-orange-400 group-hover:scale-110 transition" viewBox="0 0 64 64">
+                                <circle cx="32" cy="32" r="26" fill="none" stroke="currentColor" stroke-width="8" stroke-dasharray="6 4" />
+                                <circle cx="32" cy="32" r="14" fill="#1e293b" />
+                            </svg>
+                        </div>
+                        <span class="text-[11px] font-semibold text-slate-300">1. Đệm Giảm Xóc</span>
+                    </div>
+
+                    <!-- 2. Nam châm -->
+                    <div id="part-magnet" draggable="true" ondragstart="drag(event)" class="part-item bg-slate-900 border border-slate-700 hover:border-cyan-500/50 rounded-xl p-3 flex flex-col items-center justify-between text-center group">
+                        <div class="w-12 h-12 flex items-center justify-center my-1">
+                            <svg class="w-12 h-8 group-hover:scale-110 transition" viewBox="0 0 80 40">
+                                <rect x="0" y="5" width="40" height="30" rx="4" fill="#ef4444" />
+                                <text x="20" y="24" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle">N</text>
+                                <rect x="40" y="5" width="40" height="30" rx="4" fill="#3b82f6" />
+                                <text x="60" y="24" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle">S</text>
+                            </svg>
+                        </div>
+                        <span class="text-[11px] font-semibold text-slate-300">2. Nam Châm Vĩnh Cửu</span>
+                    </div>
+
+                    <!-- 3. Cuộn dây -->
+                    <div id="part-coil" draggable="true" ondragstart="drag(event)" class="part-item bg-slate-900 border border-slate-700 hover:border-cyan-500/50 rounded-xl p-3 flex flex-col items-center justify-between text-center group">
+                        <div class="w-12 h-12 flex items-center justify-center my-1">
+                            <svg class="w-12 h-10 text-amber-500 group-hover:scale-110 transition" viewBox="0 0 64 48">
+                                <rect x="4" y="8" width="56" height="32" rx="6" fill="rgba(245,158,11,0.15)" stroke="#f59e0b" stroke-width="2" stroke-dasharray="3 3"/>
+                                <path d="M12 8v32 M20 8v32 M28 8v32 M36 8v32 M44 8v32 M52 8v32" stroke="#fbbf24" stroke-width="2.5" />
+                            </svg>
+                        </div>
+                        <span class="text-[11px] font-semibold text-slate-300">3. Cuộn Dây Đồng</span>
+                    </div>
+
+                    <!-- 4. Mạch nắn dòng & Tụ -->
+                    <div id="part-circuit" draggable="true" ondragstart="drag(event)" class="part-item bg-slate-900 border border-slate-700 hover:border-cyan-500/50 rounded-xl p-3 flex flex-col items-center justify-between text-center group">
+                        <div class="w-12 h-12 flex items-center justify-center my-1">
+                            <svg class="w-10 h-10 group-hover:scale-110 transition" viewBox="0 0 50 50">
+                                <rect x="5" y="10" width="40" height="30" rx="4" fill="#065f46" stroke="#10b981" stroke-width="1.5"/>
+                                <circle cx="20" cy="25" r="8" fill="#1e293b" stroke="#06b6d4" stroke-width="2"/>
+                                <rect x="32" y="18" width="8" height="14" fill="#334155" />
+                            </svg>
+                        </div>
+                        <span class="text-[11px] font-semibold text-slate-300">4. Mạch Diode & Tụ</span>
+                    </div>
+
+                    <!-- 5. Bóng LED -->
+                    <div id="part-led" draggable="true" ondragstart="drag(event)" class="part-item bg-slate-900 border border-slate-700 hover:border-cyan-500/50 rounded-xl p-3 flex flex-col items-center justify-between text-center group">
+                        <div class="w-12 h-12 flex items-center justify-center my-1">
+                            <svg class="w-10 h-10 text-amber-400 group-hover:scale-110 transition" viewBox="0 0 50 50">
+                                <path d="M25 5 C15 5 10 15 10 25 C10 32 18 36 18 42 L32 42 C32 36 40 32 40 25 C40 15 35 5 25 5 Z" fill="rgba(245,158,11,0.2)" stroke="#f59e0b" stroke-width="2"/>
+                                <path d="M20 42 L20 48 M30 42 L30 48" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <span class="text-[11px] font-semibold text-slate-300">5. Đèn LED Siêu Sáng</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MÔ PHỎNG THÂN ĐÈN PIN -->
+            <div class="bg-panelBg border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden flex flex-col items-center">
+                <div class="absolute top-4 left-4 flex items-center gap-2">
+                    <span id="statusIndicator" class="inline-block w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+                    <span id="statusText" class="text-xs font-medium text-slate-400 uppercase tracking-wider">Chưa lắp xong</span>
+                </div>
+
+                <div class="my-8 w-full max-w-2xl relative flex items-center justify-center py-10">
+                    <div id="flashlightBody" class="w-full h-44 rounded-3xl bg-slate-900/60 border-2 border-cyan-500/40 relative backdrop-blur-md shadow-[0_0_30px_rgba(6,182,212,0.15)] flex items-center overflow-hidden">
+                        
+                        <div class="drop-zone w-[12%] h-full border-r border-dashed border-slate-700/60 flex items-center justify-center text-[10px] text-slate-500 font-semibold p-1 text-center" ondrop="drop(event, 'buffer')" ondragover="allowDrop(event)" ondragleave="leaveDrop(event)" id="zone-buffer">Thả Đệm</div>
+
+                        <div class="drop-zone w-[28%] h-full border-r border-dashed border-slate-700/60 flex items-center justify-center text-[10px] text-slate-500 font-semibold p-1 text-center relative" ondrop="drop(event, 'magnet')" ondragover="allowDrop(event)" ondragleave="leaveDrop(event)" id="zone-magnet">Thả Nam Châm</div>
+
+                        <div class="drop-zone w-[30%] h-full border-r border-dashed border-slate-700/60 flex items-center justify-center text-[10px] text-slate-500 font-semibold p-1 text-center" ondrop="drop(event, 'coil')" ondragover="allowDrop(event)" ondragleave="leaveDrop(event)" id="zone-coil">Thả Cuộn Dây</div>
+
+                        <div class="drop-zone w-[18%] h-full border-r border-dashed border-slate-700/60 flex items-center justify-center text-[10px] text-slate-500 font-semibold p-1 text-center" ondrop="drop(event, 'circuit')" ondragover="allowDrop(event)" ondragleave="leaveDrop(event)" id="zone-circuit">Thả Mạch</div>
+
+                        <div class="drop-zone w-[12%] h-full flex items-center justify-center text-[10px] text-slate-500 font-semibold p-1 text-center" ondrop="drop(event, 'led')" ondragover="allowDrop(event)" ondragleave="leaveDrop(event)" id="zone-led">Thả LED</div>
+
+                        <!-- Nam châm di chuyển -->
+                        <div id="magnetObj" class="w-20 h-28 rounded-xl bg-gradient-to-r from-red-600 via-slate-200 to-blue-600 border border-slate-700 absolute left-12 flex flex-col items-center justify-between p-1.5 shadow-2xl transition-transform duration-75 select-none z-30 hidden cursor-grab active:cursor-grabbing">
+                            <div class="w-full bg-red-700 text-white text-[9px] font-bold text-center rounded py-0.5">N (Bắc)</div>
+                            <div class="text-[9px] font-bold text-slate-900 bg-slate-100/90 px-1 rounded">NAM CHÂM</div>
+                            <div class="w-full bg-blue-700 text-white text-[9px] font-bold text-center rounded py-0.5">S (Nam)</div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="text-center mb-6">
+                    <p id="instructionHint" class="text-xs text-amber-400 font-medium">⚠️ Kéo 5 món ở khay trên vào thân đèn để mở khóa tính năng LẮC ĐÈN!</p>
+                </div>
+
+                <!-- Điều khiển -->
+                <div class="flex flex-wrap items-center justify-center gap-4 w-full">
+                    <button id="btnShake" disabled class="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 opacity-50 cursor-not-allowed text-white font-semibold text-sm shadow-lg shadow-cyan-500/30 transition transform flex items-center gap-2">
+                        <i class="fa-solid fa-hand-back-fist"></i> Lắc Đèn Pin (Tạo Cơ Năng)
+                    </button>
+                    <button id="btnAutoShake" disabled class="px-6 py-3 rounded-xl bg-slate-800 opacity-50 cursor-not-allowed text-slate-200 border border-slate-700 font-semibold text-sm transition transform flex items-center gap-2">
+                        <i id="autoIcon" class="fa-solid fa-play text-cyan-400"></i> Lắc Tự Động
+                    </button>
+                    <button id="btnReset" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 text-sm transition" title="Làm mới">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- THANH THỂ HIỆN CHUYỂN HÓA NĂNG LƯỢNG (KHOA HỌC LỚP 7) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Tụ tích điện -->
+                <div class="bg-panelBg border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-battery-half text-cyan-400"></i>
+                            <h3 class="font-semibold text-sm text-slate-200">Điện Năng Tích Trữ Trong Tụ</h3>
+                        </div>
+                        <span id="capPercent" class="text-xs font-mono font-bold text-cyan-400 bg-cyan-950/60 px-2 py-1 rounded border border-cyan-800/50">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-900 rounded-full h-4 p-0.5 border border-slate-800 mb-3 overflow-hidden">
+                        <div id="capBar" class="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-200 shadow-[0_0_10px_rgba(6,182,212,0.5)]" style="width: 0%;"></div>
+                    </div>
+                    <p class="text-[11px] text-slate-400">Tụ điện như "bình chứa", giữ điện năng để LED sáng liên tục.</p>
+                </div>
+
+                <!-- Đèn phát sáng -->
+                <div class="bg-panelBg border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-regular fa-lightbulb text-amber-400"></i>
+                            <h3 class="font-semibold text-sm text-slate-200">Quang Năng (Độ Sáng Đèn LED)</h3>
+                        </div>
+                        <span id="brightnessPercent" class="text-xs font-mono font-bold text-amber-400 bg-amber-950/60 px-2 py-1 rounded border border-amber-800/50">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-900 rounded-full h-4 p-0.5 border border-slate-800 mb-3 overflow-hidden">
+                        <div id="brightnessBar" class="bg-gradient-to-r from-amber-500 to-yellow-300 h-full rounded-full transition-all duration-100 shadow-[0_0_15px_rgba(234,179,8,0.6)]" style="width: 0%;"></div>
+                    </div>
+                    <p class="text-[11px] text-slate-400">Điện năng chuyển hóa thành Quang năng (ánh sáng).</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- CỘT 3: BẢNG GIẢI THÍCH KIẾN THỨC VẬT LÝ LỚP 7 -->
+        <div class="space-y-6">
+            
+            <!-- Chuỗi Chuyển Hóa Năng Lượng -->
+            <div class="bg-panelBg border border-slate-800 rounded-2xl p-5 shadow-lg">
+                <h3 class="font-bold text-sm text-cyan-400 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-arrows-spin"></i> Chuỗi Chuyển Hóa Năng Lượng
+                </h3>
+                <div class="space-y-2 text-xs">
+                    <div class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center gap-3">
+                        <div class="w-7 h-7 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center font-bold">1</div>
+                        <div>
+                            <p class="font-semibold text-slate-200">Cơ Năng (Lắc tay)</p>
+                            <p class="text-[10px] text-slate-400">Nam châm chuyển động sinh ra dòng điện.</p>
+                        </div>
+                    </div>
+                    <div class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center gap-3">
+                        <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">2</div>
+                        <div>
+                            <p class="font-semibold text-slate-200">Điện Năng (Tạo dòng điện)</p>
+                            <p class="text-[10px] text-slate-400">Cầu Diode định hướng điện nạp vào Tụ.</p>
+                        </div>
+                    </div>
+                    <div class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center gap-3">
+                        <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">3</div>
+                        <div>
+                            <p class="font-semibold text-slate-200">Quang Năng (Ánh sáng)</p>
+                            <p class="text-[10px] text-slate-400">Tụ xả điện làm bóng LED phát sáng.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bảng Thống Kê Đo Lường -->
+            <div class="bg-panelBg border border-slate-800 rounded-2xl p-5 shadow-lg">
+                <h3 class="font-semibold text-sm text-slate-200 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-gauge-high text-cyan-400"></i> Thông Số Đo Lường
+                </h3>
+                <div class="space-y-2 text-xs">
+                    <div class="flex justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                        <span class="text-slate-400">Tốc độ nam châm:</span>
+                        <span id="speedVal" class="font-mono font-semibold text-cyan-400">0.0 m/s</span>
+                    </div>
+                    <div class="flex justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                        <span class="text-slate-400">Số nhịp qua dây:</span>
+                        <span id="passCount" class="font-mono font-semibold text-amber-400">0 lần</span>
+                    </div>
+                    <div class="flex justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                        <span class="text-slate-400">Hiệu điện thế nạp:</span>
+                        <span id="dcVal" class="font-mono font-semibold text-emerald-400">0.0 V</span>
+                    </div>
+                    <div class="flex justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                        <span class="text-slate-400">Thời gian duy trì sáng:</span>
+                        <span id="timeVal" class="font-mono font-semibold text-purple-400">0 giây</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Modal Bài học Lớp 7 -->
+    <div id="guideModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-panelBg border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-base text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-graduation-cap text-cyan-400"></i> Lý Thuyết Khoa Học Tự Nhiên Lớp 7
+                </h3>
+                <button id="btnCloseGuide" class="text-slate-400 hover:text-slate-200 text-sm">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="text-xs text-slate-300 space-y-3 leading-relaxed">
+                <p><strong>1. Hiện tượng Cảm ứng Điện từ:</strong> Khi di chuyển nam châm qua lại trong cuộn dây đồng, từ trường biến đổi sẽ sinh ra dòng điện trong dây.</p>
+                <p><strong>2. Định luật Bảo toàn Năng lượng:</strong> Năng lượng không tự nhiên sinh ra hay mất đi. Bạn tốn <em>Cơ năng</em> lắc tay $\rightarrow$ tạo ra <em>Điện năng</em> $\rightarrow$ biến thành <em>Quang năng</em> phát sáng.</p>
+                <p><strong>3. Tác dụng của Cầu Diode & Tụ điện:</strong> Diode đóng vai trò như "van 1 chiều" bắt dòng điện nạp vào Tụ. Tụ điện giữ điện và xả từ từ giúp đèn LED không bị chớp tắt theo từng nhịp lắc.</p>
+            </div>
+            <div class="mt-6 text-right">
+                <button id="btnGotIt" class="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white font-semibold text-xs transition">Đã hiểu bài</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 bg-panelBg/50 py-4 text-center text-xs text-slate-500">
+        <p>Mô phỏng Học tập Khoa học Tự nhiên 7 • Đèn pin Faraday (Forever Flashlight)</p>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        let installedParts = { buffer: false, magnet: false, coil: false, circuit: false, led: false };
+        let installedCount = 0;
+
+        let isDragging = false;
+        let startX = 0;
+        let magnetX = 12;
+        let velocity = 0;
+        let lastX = 12;
+        let lastTime = Date.now();
+        
+        let capacitorEnergy = 0;
+        let passCounter = 0;
+        let lastPassSide = null;
+        let isAutoShaking = false;
+        let autoShakeTimer = null;
+        let soundEnabled = localStorage.getItem('flashlight_sound') !== 'false';
+
+        // Web Audio API
+        let audioCtx = null;
+
+        function initAudioContext() {
+            if (!audioCtx) {
+                const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtxClass) audioCtx = new AudioCtxClass();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playClickSound(intensity = 0.8) {
+            if (!soundEnabled) return;
+            initAudioContext();
+            if (!audioCtx || audioCtx.state !== 'running') return;
+
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const scaledVolume = Math.min(2.0, Math.max(0.5, intensity * 2.0));
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.1);
+
+                gain.gain.setValueAtTime(scaledVolume, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } catch (e) {}
+        }
+
+        function playInstallSound() {
+            if (!soundEnabled) return;
+            initAudioContext();
+            if (!audioCtx || audioCtx.state !== 'running') return;
+
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+
+                gain.gain.setValueAtTime(0.8, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } catch(e) {}
+        }
+
+        // KÉO THẢ LINH KIỆN
+        function allowDrop(ev) {
+            ev.preventDefault();
+            ev.currentTarget.classList.add('drag-over');
+        }
+
+        function leaveDrop(ev) {
+            ev.currentTarget.classList.remove('drag-over');
+        }
+
+        function drag(ev) {
+            ev.dataTransfer.setData("text", ev.currentTarget.id);
+        }
+
+        function drop(ev, zoneType) {
+            ev.preventDefault();
+            ev.currentTarget.classList.remove('drag-over');
+            var data = ev.dataTransfer.getData("text");
+            
+            if (data === "part-" + zoneType && !installedParts[zoneType]) {
+                installedParts[zoneType] = true;
+                installedCount++;
+                
+                playInstallSound();
+                document.getElementById(data).classList.add('installed');
+
+                const targetZone = document.getElementById('zone-' + zoneType);
+
+                if (zoneType === 'buffer') {
+                    targetZone.innerHTML = `
+                        <div class="w-full h-24 bg-gradient-to-r from-orange-500/40 to-amber-600/30 border-y-2 border-orange-500 flex items-center justify-center rounded-l-xl">
+                            <span class="text-[10px] font-bold text-orange-300">ĐỆM</span>
+                        </div>`;
+                } else if (zoneType === 'coil') {
+                    targetZone.innerHTML = `
+                        <div class="w-full h-36 rounded-xl border-2 border-amber-500/80 bg-amber-500/20 flex flex-col items-center justify-around py-2 shadow-[inset_0_0_15px_rgba(245,158,11,0.4)] relative">
+                            <div class="w-full h-1 bg-amber-400 shadow-[0_0_5px_#f59e0b]"></div>
+                            <div class="w-full h-1 bg-amber-400 shadow-[0_0_5px_#f59e0b]"></div>
+                            <div class="w-full h-1 bg-amber-400 shadow-[0_0_5px_#f59e0b]"></div>
+                            <div class="w-full h-1 bg-amber-400 shadow-[0_0_5px_#f59e0b]"></div>
+                            <span class="absolute text-[9px] font-bold text-amber-300 bg-slate-900/90 px-1.5 py-0.5 rounded border border-amber-500/50">CUỘN DÂY</span>
+                        </div>`;
+                } else if (zoneType === 'circuit') {
+                    targetZone.innerHTML = `
+                        <div class="w-full h-32 rounded-xl bg-emerald-950/80 border border-emerald-500/50 p-1 flex flex-col items-center justify-around text-[9px]">
+                            <span class="font-bold text-emerald-400">Diode + Tụ</span>
+                            <div class="w-6 h-8 bg-slate-800 rounded border border-cyan-500 flex items-center justify-center text-[8px] text-cyan-300 font-mono">TỤ</div>
+                        </div>`;
+                } else if (zoneType === 'led') {
+                    targetZone.innerHTML = `
+                        <div class="w-full h-28 rounded-r-2xl bg-gradient-to-r from-slate-800 to-slate-900 border-l-2 border-cyan-500/50 flex items-center justify-center">
+                            <div id="ledBulb" class="w-6 h-16 rounded-full bg-amber-500/20 transition-all duration-100 flex items-center justify-center">
+                                <div class="w-2 h-6 rounded-full bg-amber-200/40" id="ledCore"></div>
+                            </div>
+                        </div>`;
+                } else if (zoneType === 'magnet') {
+                    targetZone.innerHTML = `<span class="text-[10px] text-emerald-400 font-bold">✓ Đã lắp Nam Châm</span>`;
+                }
+
+                document.getElementById('assembleProgress').innerText = `Tiến độ: ${installedCount}/5`;
+
+                if (installedCount === 5) {
+                    document.getElementById('statusIndicator').classList.remove('bg-amber-500');
+                    document.getElementById('statusIndicator').classList.add('bg-emerald-500');
+                    document.getElementById('statusText').innerText = "Đã sẵn sàng tạo điện!";
+                    document.getElementById('statusText').classList.add('text-emerald-400');
+                    
+                    document.getElementById('instructionHint').innerText = "🎉 Hoàn thành lắp ráp! Hãy bấm nút 'Lắc Đèn Pin' để biến Cơ Năng thành Quang Năng.";
+                    document.getElementById('instructionHint').className = "text-xs text-emerald-400 font-semibold";
+
+                    const btnShake = document.getElementById('btnShake');
+                    const btnAutoShake = document.getElementById('btnAutoShake');
+                    btnShake.disabled = false;
+                    btnShake.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btnShake.classList.add('hover:from-cyan-400', 'hover:to-blue-500', 'active:scale-95');
+
+                    btnAutoShake.disabled = false;
+                    btnAutoShake.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btnAutoShake.classList.add('hover:bg-slate-700', 'active:scale-95');
+
+                    document.getElementById('magnetObj').classList.remove('hidden');
+                }
+            }
+        }
+
+        // MÔ PHỎNG VẬN HÀNH
+        const magnetObj = document.getElementById('magnetObj');
+        const capBar = document.getElementById('capBar');
+        const capPercent = document.getElementById('capPercent');
+        const brightnessBar = document.getElementById('brightnessBar');
+        const brightnessPercent = document.getElementById('brightnessPercent');
+        const speedVal = document.getElementById('speedVal');
+        const passCount = document.getElementById('passCount');
+        const dcVal = document.getElementById('dcVal');
+        const timeVal = document.getElementById('timeVal');
+
+        magnetObj.addEventListener('mousedown', (e) => {
+            initAudioContext();
+            if (isAutoShaking) return;
+            isDragging = true;
+            startX = e.clientX;
+            lastX = magnetX;
+            lastTime = Date.now();
+            e.stopPropagation();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging || isAutoShaking) return;
+            const bounds = document.getElementById('flashlightBody').getBoundingClientRect();
+            const dx = e.clientX - startX;
+            const bodyWidth = bounds.width - magnetObj.offsetWidth;
+            
+            let newX = lastX + (dx / bodyWidth) * 100;
+            newX = Math.max(12, Math.min(newX, 70));
+
+            const now = Date.now();
+            const dt = (now - lastTime) / 1000;
+            if (dt > 0) velocity = Math.abs((newX - magnetX) / dt) * 0.1;
+            lastTime = now;
+            magnetX = newX;
+            
+            updatePhysicsAndPosition();
+        });
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
+        function updatePhysicsAndPosition() {
+            magnetObj.style.left = `${magnetX}%`;
+
+            let currentSide = magnetX < 35 ? 'left' : (magnetX > 50 ? 'right' : 'center');
+            if (currentSide !== 'center' && currentSide !== lastPassSide && lastPassSide !== null) {
+                passCounter++;
+                playClickSound(Math.min(1.0, 0.4 + velocity * 0.2));
+            }
+            if (currentSide !== 'center') lastPassSide = currentSide;
+
+            let generatedVoltageAC = velocity * 4.5;
+            if (!isDragging && !isAutoShaking) {
+                velocity *= 0.85;
+                generatedVoltageAC = velocity * 4.5;
+            }
+
+            if (generatedVoltageAC > 0.1) {
+                capacitorEnergy = Math.min(100, capacitorEnergy + generatedVoltageAC * 1.5);
+            }
+
+            speedVal.innerText = `${(velocity * 2).toFixed(1)} m/s`;
+            passCount.innerText = `${passCounter} lần`;
+            
+            let dcVoltage = (capacitorEnergy / 100) * 3.3;
+            dcVal.innerText = `${dcVoltage.toFixed(1)} V`;
+
+            let estSeconds = Math.round((capacitorEnergy / 100) * 60);
+            timeVal.innerText = `${estSeconds} giây`;
+        }
+
+        function mainLoop() {
+            if (!isDragging && !isAutoShaking && velocity > 0.01) {
+                velocity *= 0.9;
+                updatePhysicsAndPosition();
+            }
+
+            if (capacitorEnergy > 0) {
+                let drainRate = 0.05 + (capacitorEnergy / 100) * 0.08;
+                capacitorEnergy = Math.max(0, capacitorEnergy - drainRate);
+            }
+
+            let brightness = capacitorEnergy;
+            capBar.style.width = `${capacitorEnergy}%`;
+            capPercent.innerText = `${Math.round(capacitorEnergy)}%`;
+
+            brightnessBar.style.width = `${brightness}%`;
+            brightnessPercent.innerText = `${Math.round(brightness)}%`;
+
+            const ledBulb = document.getElementById('ledBulb');
+            const ledCore = document.getElementById('ledCore');
+
+            if (ledBulb && ledCore) {
+                if (brightness > 2) {
+                    let glowAlpha = brightness / 100;
+                    ledBulb.style.backgroundColor = `rgba(234, 179, 8, ${0.2 + glowAlpha * 0.8})`;
+                    ledBulb.style.boxShadow = `0 0 ${10 + glowAlpha * 35}px rgba(234, 179, 8, ${0.4 + glowAlpha * 0.6})`;
+                    ledCore.style.backgroundColor = `rgba(254, 240, 138, ${0.4 + glowAlpha * 0.6})`;
+                } else {
+                    ledBulb.style.backgroundColor = `rgba(234, 179, 8, 0.1)`;
+                    ledBulb.style.boxShadow = `0 0 5px rgba(234, 179, 8, 0.1)`;
+                    ledCore.style.backgroundColor = `rgba(254, 240, 138, 0.2)`;
+                }
+            }
+
+            requestAnimationFrame(mainLoop);
+        }
+
+        document.getElementById('btnShake').addEventListener('click', () => {
+            if (installedCount < 5) return;
+            initAudioContext();
+            velocity = 3.5;
+            let startPos = magnetX;
+            let targetPos = startPos > 40 ? 15 : 62;
+            let progress = 0;
+            
+            function animateShake() {
+                progress += 0.15;
+                magnetX = startPos + (targetPos - startPos) * Math.sin(progress * Math.PI);
+                updatePhysicsAndPosition();
+                if (progress < 1) {
+                    requestAnimationFrame(animateShake);
+                } else {
+                    playClickSound(0.8);
+                }
+            }
+            animateShake();
+        });
+
+        const btnAutoShake = document.getElementById('btnAutoShake');
+        const autoIcon = document.getElementById('autoIcon');
+        
+        btnAutoShake.addEventListener('click', () => {
+            if (installedCount < 5) return;
+            initAudioContext();
+            isAutoShaking = !isAutoShaking;
+            if (isAutoShaking) {
+                btnAutoShake.classList.add('bg-cyan-600', 'text-white');
+                btnAutoShake.classList.remove('bg-slate-800', 'text-slate-200');
+                autoIcon.classList.replace('fa-play', 'fa-pause');
+                
+                let startTime = Date.now();
+                function autoLoop() {
+                    if (!isAutoShaking) return;
+                    let elapsed = (Date.now() - startTime) / 300;
+                    magnetX = 38 + 26 * Math.sin(elapsed * 5);
+                    velocity = 2.2;
+                    updatePhysicsAndPosition();
+                    
+                    if (Math.sin(elapsed * 5) > 0.95 || Math.sin(elapsed * 5) < -0.95) {
+                        playClickSound(0.7);
+                    }
+                    autoShakeTimer = requestAnimationFrame(autoLoop);
+                }
+                autoLoop();
+            } else {
+                btnAutoShake.classList.remove('bg-cyan-600', 'text-white');
+                btnAutoShake.classList.add('bg-slate-800', 'text-slate-200');
+                autoIcon.classList.replace('fa-pause', 'fa-play');
+                cancelAnimationFrame(autoShakeTimer);
+                velocity = 0;
+            }
+        });
+
+        document.getElementById('btnReset').addEventListener('click', () => { location.reload(); });
+
+        const guideModal = document.getElementById('guideModal');
+        document.getElementById('btnGuide').addEventListener('click', () => guideModal.classList.remove('hidden'));
+        document.getElementById('btnCloseGuide').addEventListener('click', () => guideModal.classList.add('hidden'));
+        document.getElementById('btnGotIt').addEventListener('click', () => guideModal.classList.add('hidden'));
+
+        const btnSound = document.getElementById('btnSound');
+        const soundIcon = document.getElementById('soundIcon');
+        
+        function updateSoundUI() {
+            if (soundEnabled) {
+                soundIcon.classList.replace('fa-volume-xmark', 'fa-volume-high');
+                soundIcon.classList.add('text-cyan-400');
+            } else {
+                soundIcon.classList.replace('fa-volume-high', 'fa-volume-xmark');
+                soundIcon.classList.remove('text-cyan-400');
+            }
+        }
+
+        btnSound.addEventListener('click', () => {
+            initAudioContext();
+            soundEnabled = !soundEnabled;
+            localStorage.setItem('flashlight_sound', soundEnabled);
+            updateSoundUI();
+        });
+
+        window.onload = function() {
+            updateSoundUI();
+            mainLoop();
+        };
+    </script>
+</body>
+</html>
